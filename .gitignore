@@ -1,0 +1,9 @@
+*.swp
+*.swo
+*.json
+*.csv
+*.log
+parameters/
+TODO
+NOTES
+__pycache__/
