@@ -8,42 +8,22 @@ def query_resource(site, query):
     """Use the datastore_search_sql API endpoint to query a public CKAN resource."""
     ckan = ckanapi.RemoteCKAN(site)
     response = ckan.action.datastore_search_sql(sql=query)
-    # A typical response is a dictionary like this
-    #{u'fields': [{u'id': u'_id', u'type': u'int4'},
-    #             {u'id': u'_full_text', u'type': u'tsvector'},
-    #             {u'id': u'pin', u'type': u'text'},
-    #             {u'id': u'number', u'type': u'int4'},
-    #             {u'id': u'total_amount', u'type': u'float8'}],
-    # u'records': [{u'_full_text': u"'0001b00010000000':1 '11':2 '13585.47':3",
-    #               u'_id': 1,
-    #               u'number': 11,
-    #               u'pin': u'0001B00010000000',
-    #               u'total_amount': 13585.47},
-    #              {u'_full_text': u"'0001c00058000000':3 '2':2 '7827.64':1",
-    #               u'_id': 2,
-    #               u'number': 2,
-    #               u'pin': u'0001C00058000000',
-    #               u'total_amount': 7827.64},
-    #              {u'_full_text': u"'0001c01661006700':3 '1':1 '3233.59':2",
-    #               u'_id': 3,
-    #               u'number': 1,
-    #               u'pin': u'0001C01661006700',
-    #               u'total_amount': 3233.59}]
-    # u'sql': u'SELECT * FROM "d1e80180-5b2e-4dab-8ec3-be621628649e" LIMIT 3'}
     data = response['records']
-
-    # Note that if a CKAN table field name is a Postgres reserved word (like 
+    # Note that if a CKAN table field name is a Postgres reserved word (like
     # ALL or CAST or NEW), you get a not-very-useful error
     #      (e.g., 'query': ['(ProgrammingError) syntax error at or near
     #     "on"\nLINE 1: SELECT * FROM (SELECT load, on FROM)
     # and you need to escape the reserved field name with double quotes.
     # It's actually best to escape all field names with double quotes,
-    # but if it's all lowercase letters and underscores in the CKAN table, 
-    # you can get away with not escaping it in yourquery.
+    # but if it's all lowercase letters and underscores in the CKAN table,
+    # you can get away with not escaping it in your query.
 
     return data
 
 def query_any_resource(resource_id, query):
+    """This function is a wrapper around query_resource. This wrapper just checks
+    whether a resource is private and returns an explanation of why it can't be
+    queried if it is private. Otherwise it returns the query_resource results."""
     site = "https://data.wprdc.org"
     ckan = ckanapi.RemoteCKAN(site)
     # From resource ID, determine package ID.
@@ -60,16 +40,18 @@ def intersection(list1, list2):
     return list(set(list1) & set(list2))
 
 def validate_where_clause(where_clause):
+    """This function provides a little validation of a single where clause
+    by ensuring that it contains an operator."""
     operators = ['=', '>', '<', '>=', '<=', '<>', '!=', 'BETWEEN', 'LIKE', 'IN']
-    parts = where_clause.split(' ')
+    parts = [p.upper() for p in where_clause.split(' ')]
     if intersection(operators, parts) == []:
         raise ValueError(f"No operator found in the WHERE clause {where_clause}.")
 
 def remove_fields(records, fields_to_remove):
     """This function removes selected fields from the CKAN records. The intent is
     to remove the '_full_text' field, which is row-level metadata to facilitate
-    searches of the records, but this function could be used to purge other 
-    fields, like '_geom' and '_the_geom_webmercator', which may not be of 
+    searches of the records, but this function could be used to purge other
+    fields, like '_geom' and '_the_geom_webmercator', which may not be of
     interest in some situations."""
     for r in records:
         _ = [r.pop(key, None) for key in fields_to_remove]
@@ -90,9 +72,6 @@ def synthesize_query(resource_id, select_fields=['*'], where_clauses=None, group
 
 def get_wprdc_data(resource_id, select_fields=['*'], where_clauses=None, group_by=None, order_by=None):
     query = synthesize_query(resource_id, select_fields, where_clauses, group_by, order_by)
-    print(f"order_by = {order_by}")
-    print(f"group_by = {group_by}")
-
     records = query_any_resource(resource_id, query)
 
     if len(records) == HARD_LIMIT:
@@ -102,5 +81,5 @@ def get_wprdc_data(resource_id, select_fields=['*'], where_clauses=None, group_b
         # hard limit that way.
 
     # Clean out fields that no one needs.
-    records = remove_fields(records, ['_full_text']) 
+    records = remove_fields(records, ['_full_text'])
     return records
