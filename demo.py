@@ -9,7 +9,6 @@ if __name__ == '__main__':
     print("Running tests to demonstrate querying functionality.")
     kwargs = {'resource_id': 'f8ab32f7-44c7-43ca-98bf-c1b444724598',
             'select_fields': ['*'],
-            #'where_clauses': ['"DogName" = \'BATMAN\'']
             'where_clauses': ['"DogName" LIKE \'DOGZ%\'']
             }
     query = synthesize_query(**kwargs)
@@ -33,22 +32,16 @@ if __name__ == '__main__':
         print(f"The returned list of records looks like this:")
         pprint(records)
 
-    # More sample queries:
-    # SELECT COUNT(*) FROM "f8ab32f7-44c7-43ca-98bf-c1b444724598" WHERE "Breed" = 'POODLE STANDARD'
     print("\nFinally, let's test some other query elements. Here's the query:")
     kwargs = {'resource_id': 'f8ab32f7-44c7-43ca-98bf-c1b444724598',
             'select_fields': ['COUNT("DogName") AS amount', '"DogName"'],
-            #'select_fields': ['DISTINCT ON("DogName")', 'COUNT("_id") AS amount'],
-            #'select_fields': ['DISTINCT ON("DogName")', '"DogName"', 'COUNT("DogName") AS amount'],
-            #'select_fields': ['COUNT("DogName") AS amount'],
             'where_clauses': ['"Breed" = \'POODLE STANDARD\''],
-            #'where_clauses': ['"Breed" LIKE \'POODLE T%\''],
             'group_by': '"DogName"',
             'order_by': 'amount DESC',
+            'limit': 5,
             }
     query = synthesize_query(**kwargs)
     print(query)
     records = get_wprdc_data(**kwargs)
     print("Here are the resulting top five names for the POODLE STANDARD breed, sorted by decreasing frequency:")
-    pprint(records[:5])
-
+    pprint(records)
