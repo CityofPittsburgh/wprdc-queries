@@ -57,7 +57,7 @@ def remove_fields(records, fields_to_remove):
         _ = [r.pop(key, None) for key in fields_to_remove]
     return records
 
-def synthesize_query(resource_id, select_fields=['*'], where_clauses=None, group_by=None, order_by=None):
+def synthesize_query(resource_id, select_fields=['*'], where_clauses=None, group_by=None, order_by=None, limit=None):
     query = f'SELECT {", ".join(select_fields)} FROM "{resource_id}"'
     if where_clauses is not None:
         for clause in list(where_clauses):
@@ -68,10 +68,16 @@ def synthesize_query(resource_id, select_fields=['*'], where_clauses=None, group
         query += f" GROUP BY {group_by}"
     if order_by is not None:
         query += f" ORDER BY {order_by}"
+    if limit is not None:
+        try:
+            int(limit)
+        except ValueError:
+            print(f"Unable to cast the LIMIT parameter '{limit}' to an integer limit.")
+        query += f" LIMIT {limit}"
     return query
 
-def get_wprdc_data(resource_id, select_fields=['*'], where_clauses=None, group_by=None, order_by=None):
-    query = synthesize_query(resource_id, select_fields, where_clauses, group_by, order_by)
+def get_wprdc_data(resource_id, select_fields=['*'], where_clauses=None, group_by=None, order_by=None, limit=None):
+    query = synthesize_query(resource_id, select_fields, where_clauses, group_by, order_by, limit)
     records = query_any_resource(resource_id, query)
 
     if len(records) == HARD_LIMIT:
